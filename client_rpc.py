@@ -1,9 +1,50 @@
 import turtle
 import rpyc
+import uuid
+import paho.mqtt.client as mqtt
 
 HOST = 'localhost'
 PORTA = 18861
 username = input("Digite seu nome de jogador: ")
+
+mqtt_broker = "broker.hivemq.com"
+mqtt_port = 1883
+topic_base = "turtle_game/wait_room"
+
+class GerenciadorPartida:
+    def __init__(self):
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, f"jogador_{uuid.uuid4()}")
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+
+        self.estado_atual = 0
+        self.jogadores_na_fila = 0
+
+        try:
+            self.client.connect(mqtt_broker, mqtt_port, 60)
+            self.client.loop_start()
+            print("Conectado ao sistema de Matchmaking MQTT.")
+        except Exception as e:
+            print(f"Erro ao conectar no MQTT: {e}")
+
+    def on_connect(self, client, userdata, flags, rc, properties=None):
+        print(f"Conectado ao Broker com código: {rc}")
+        client.subscribe(f"{topic_base}/fila")
+
+    def on_message(self, client, userdata, msg):
+        topic = msg.topic
+        payload = msg.payload.decode()
+        print(f"[MQTT] {topic}: {payload}")
+            
+        if "START" in payload:
+            self.estado_atual = 3
+
+    def buscar_partida(self):
+        self.estado_atual = 1 # Muda para "Procurando"
+        self.client.publish(f"{topic_base}/fila", "entrar")
+        print("Buscando partida...")
+
+matchmaking = GerenciadorPartida()
 
 try:
     print(f"\nConectando ao servidor em {HOST}:{PORTA}...")
