@@ -73,6 +73,12 @@ wn.onkey(go_up, "Up"); wn.onkey(go_down, "Down"); wn.onkey(go_left, "Left"); wn.
 turtle.getcanvas().winfo_toplevel().protocol("WM_DELETE_WINDOW", on_close)
 
 def game_loop():
+    meu_jogador.clear()
+    meu_x, meu_y = meu_jogador.xcor(), meu_jogador.ycor()
+    meu_jogador.goto(meu_x, meu_y + 25)
+    meu_jogador.write(username, align="center", font=("Arial", 12, "bold"))
+    meu_jogador.goto(meu_x, meu_y)
+
     try:
         estado_jogo = proxy.root.obter_estado_jogo()
     except EOFError:
@@ -97,15 +103,23 @@ def game_loop():
             outros_jogadores[id_jogador] = novo_jogador
             print(f"Novo jogador detectado: {dados['username']} (ID: {id_jogador})")
 
-        outros_jogadores[id_jogador].goto(dados['x'], dados['y'])
+        bolinha = outros_jogadores[id_jogador]
+        bolinha.clear()
+
+        bolinha.goto(dados['x'], dados['y'] + 25)
+        bolinha.write(dados['username'], align="center", font=("Arial", 12, "bold"))
+        bolinha.goto(dados['x'], dados['y'])
 
     ids_locais = list(outros_jogadores.keys())
 
+    ids_locais = list(outros_jogadores.keys())
+    
     for id_local in ids_locais:
         if id_local not in ids_online:
+            outros_jogadores[id_local].clear() 
             outros_jogadores[id_local].hideturtle()
             del outros_jogadores[id_local]
-            print(f"Jogador desconectado: ID {id_local}")
+            print(f"Jogador {id_local} removido completamente.")
 
     wn.update()
     wn.ontimer(game_loop, 50)
