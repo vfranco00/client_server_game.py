@@ -31,14 +31,11 @@ meu_jogador.penup()
 
 outros_jogadores = {}
 ultima_posicao = (0, 0)
-
-# --- Movimento: um passo por tecla ---
-STEP = 15              # tamanho do passo
-offset_bola = 15       # margem para não "grudar" na borda
+STEP = 15
+offset_bola = 15
 
 def move_step(dx, dy):
     global ultima_posicao
-    # limites atuais (se a janela mudar de tamanho em runtime, ainda respeita)
     limite_y, limite_x = altura_tela / 2, largura_tela / 2
 
     x, y = meu_jogador.xcor(), meu_jogador.ycor()
@@ -69,22 +66,25 @@ def on_close():
 
 # Controles: onkey = 1 disparo por tecla (sem auto-repeat infinito)
 wn.listen()
-# WASD (minúsculas e maiúsculas)
-wn.onkey(go_up,    "w"); wn.onkey(go_down,  "s"); wn.onkey(go_left,  "a"); wn.onkey(go_right, "d")
-wn.onkey(go_up,    "W"); wn.onkey(go_down,  "S"); wn.onkey(go_left,  "A"); wn.onkey(go_right, "D")
-# Setas (opcional)
+wn.onkey(go_up, "w"); wn.onkey(go_down, "s"); wn.onkey(go_left, "a"); wn.onkey(go_right, "d")
+wn.onkey(go_up, "W"); wn.onkey(go_down, "S"); wn.onkey(go_left, "A"); wn.onkey(go_right, "D")
 wn.onkey(go_up, "Up"); wn.onkey(go_down, "Down"); wn.onkey(go_left, "Left"); wn.onkey(go_right, "Right")
 
 turtle.getcanvas().winfo_toplevel().protocol("WM_DELETE_WINDOW", on_close)
 
 def game_loop():
-    # Não move aqui: movimento é no key handler (um passo por tecla)
     try:
         estado_jogo = proxy.root.obter_estado_jogo()
     except EOFError:
         estado_jogo = []
+        print("Conexão com o servidor perdida. Tentando reconectar...")
+        return
+    
+    ids_online = set()
 
     for id_jogador, dados in estado_jogo:
+        ids_online.add(id_jogador)
+
         if id_jogador == meu_id:
             continue
 
@@ -99,8 +99,16 @@ def game_loop():
 
         outros_jogadores[id_jogador].goto(dados['x'], dados['y'])
 
+    ids_locais = list(outros_jogadores.keys())
+
+    for id_local in ids_locais:
+        if id_local not in ids_online:
+            outros_jogadores[id_local].hideturtle()
+            del outros_jogadores[id_local]
+            print(f"Jogador desconectado: ID {id_local}")
+
     wn.update()
-    wn.ontimer(game_loop, 50)  # ~20 FPS para atualizar os outros jogadores
+    wn.ontimer(game_loop, 50)
 
 game_loop()
 wn.mainloop()
